@@ -48,7 +48,6 @@ var ErrInvalidColumn = errors.New("invalid column")
 var ErrPKCanNotBeNull = errors.New("primary key can not be null")
 var ErrPKCanNotBeUpdated = errors.New("primary key can not be updated")
 var ErrNotNullableColumnCannotBeNull = errors.New("not nullable column can not be null")
-var ErrIndexedColumnCanNotBeNull = errors.New("indexed column can not be null")
 var ErrIndexAlreadyExists = errors.New("index already exists")
 var ErrMaxNumberOfColumnsInIndexExceeded = errors.New("number of columns in multi-column index exceeded")
 var ErrNoAvailableIndex = errors.New("no available index")
@@ -854,6 +853,10 @@ func (e *Engine) unmapIndexEntry(index *Index, mkey []byte) (encPKVals []byte, e
 	if !index.IsPrimary() {
 		//read index values
 		for _, col := range index.cols {
+			if enc[off] == KeyValPrefixNull {
+				off += 1
+				continue
+			}
 			if enc[off] != KeyValPrefixNotNull {
 				return nil, ErrCorruptedData
 			}
@@ -1002,18 +1005,21 @@ func EncodeValue(val interface{}, colType SQLValueType, maxLen int) ([]byte, err
 }
 
 const (
-	// values < KeyValPrefixNotNull are reserved for alternative values
-	// such as nulls that should end up before normal values
+	KeyValPrefixNull       byte = 0x20
 	KeyValPrefixNotNull    byte = 0x80
 	KeyValPrefixUpperBound byte = 0xFF
 )
 
 func EncodeAsKey(val interface{}, colType SQLValueType, maxLen int) ([]byte, error) {
-	if val == nil || maxLen <= 0 {
+	if maxLen <= 0 {
 		return nil, ErrInvalidValue
 	}
 	if maxLen > maxKeyLen {
 		return nil, ErrMaxKeyLengthExceeded
+	}
+
+	if val == nil {
+		return []byte{KeyValPrefixNull}, nil
 	}
 
 	switch colType {

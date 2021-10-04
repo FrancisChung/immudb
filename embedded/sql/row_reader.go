@@ -259,7 +259,6 @@ func keyReaderSpecFrom(e *Engine, table *Table, scanSpecs *ScanSpecs) (spec *sto
 
 	if !scanSpecs.index.IsPrimary() && !scanSpecs.index.IsUnique() {
 		// non-unique index entries include encoded pk values as suffix
-
 		if scanSpecs.descOrder {
 			seekKey = append(seekKey, KeyValPrefixUpperBound)
 		} else {
