@@ -85,6 +85,7 @@ const sszSize = 2
 const offsetSize = 8
 
 const Version = 1
+const TxHeaderVersion = 1
 
 const (
 	metaVersion      = "VERSION"
@@ -334,37 +335,6 @@ func (tx *OngoingTx) Cancel() error {
 	}
 
 	return nil
-}
-
-func (kv *EntrySpec) Digest() [sha256.Size]byte {
-	var mdbs []byte
-
-	if kv.Metadata != nil {
-		mdbs = kv.Metadata.Bytes()
-	}
-
-	mdLen := len(mdbs)
-
-	b := make([]byte, sszSize+mdLen+len(kv.Key)+sha256.Size)
-	i := 0
-
-	if mdLen > 0 {
-		// md is only written if present for backward-compatibility
-		binary.BigEndian.PutUint16(b[i:], uint16(mdLen))
-		i += sszSize
-
-		copy(b[i:], mdbs)
-		i += mdLen
-	}
-
-	copy(b[i:], kv.Key)
-	i += len(kv.Key)
-
-	hvalue := sha256.Sum256(kv.Value)
-	copy(b[i:], hvalue[:])
-	i += sha256.Size
-
-	return sha256.Sum256(b[:i])
 }
 
 func Open(path string, opts *Options) (*ImmuStore, error) {
